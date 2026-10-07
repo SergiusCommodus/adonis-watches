@@ -11,7 +11,14 @@
   function get(s, k) { try { return s.getItem(k); } catch (e) { return null; } }
   function set(s, k, v) { try { s.setItem(k, v); } catch (e) {} }
 
-  var a = new Audio(base + 'audio/anthem.mp3');
+  var ua = navigator.userAgent || '';
+  var isAppleWebKit = /iP(hone|ad|od)/.test(ua) || (/Macintosh/.test(ua) && 'ontouchend' in document) ||
+    (/Safari/.test(ua) && !/Chrome|Chromium|CriOS|FxiOS|Edg|Android/.test(ua));
+  var a = document.createElement('audio');
+  a.setAttribute('playsinline', '');
+  // AAC in an mp4 wrapper is the format iPhones handle most reliably; mp3 is the fallback.
+  var aac = a.canPlayType && a.canPlayType('audio/mp4; codecs="mp4a.40.2"');
+  a.src = base + (aac === 'probably' || (isAppleWebKit && aac) ? 'audio/anthem.m4a' : 'audio/anthem.mp3');
   a.loop = true; a.preload = 'none'; a.volume = 0;
   try { localStorage.removeItem(KEY_OFF); } catch (e) {}
   var wantOn = get(sessionStorage, KEY_OFF) !== '1';
@@ -55,12 +62,16 @@
       if (k >= 1) { clearInterval(fadeTimer); if (done) done(); }
     }, 40);
   }
+  var attempt = 0;
+  function ok() { playing = true; paint(); fadeTo(TARGET, FADE_MS); removeGestures(); }
   function start() {
     if (!wantOn || playing) return;
-    var p = a.play();
-    if (p && p.then) p.then(function () { playing = true; paint(); fadeTo(TARGET, FADE_MS); removeGestures(); }, function () { playing = false; paint(); });
-    else { playing = true; paint(); fadeTo(TARGET, FADE_MS); removeGestures(); }
+    var my = ++attempt, p;
+    try { p = a.play(); } catch (e) { return; }
+    if (p && p.then) p.then(function () { if (my === attempt || !a.paused) ok(); }, function () { if (my === attempt && a.paused) { playing = false; paint(); } });
+    else ok();
   }
+  a.addEventListener('playing', function () { if (!playing && wantOn) ok(); });
   function stop() { wantOn = false; set(sessionStorage, KEY_OFF, '1'); fadeTo(0, 500, function () { a.pause(); playing = false; paint(); }); paint(); }
   function resume() { wantOn = true; set(sessionStorage, KEY_OFF, '0'); playing = false; start(); }
 
@@ -86,7 +97,8 @@
      and Firefox). Otherwise wait for a gesture, so the track is not downloaded for nothing. */
   var policy = '';
   try { if (navigator.getAutoplayPolicy) policy = navigator.getAutoplayPolicy('mediaelement'); } catch (e) {}
-  if (wantOn && (policy === 'allowed' || policy === '')) start();
+  // Safari and iPhones never allow this without a tap, so skip the attempt there.
+  if (wantOn && (policy === 'allowed' || (policy === '' && !isAppleWebKit))) start();
   var playCbs = [];
   a.addEventListener('playing', function () { playCbs.forEach(function (f) { f(); }); });
   window.__adonisAudio = { el: a, start: function () { wantOn = true; set(sessionStorage, KEY_OFF, '0'); start(); }, stop: stop,
