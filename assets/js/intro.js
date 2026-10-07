@@ -17,8 +17,11 @@
   var q = function (s) { return intro.querySelector(s); };
   var top = q('.intro-top'), bot = q('.intro-bottom'), scene = q('.intro-scene');
   var hopWrap = q('.intro-hoplite'), glow = q('.intro-glow');
-  var upper = q('#h-upper'), arm = q('#h-arm'), spearIn = q('#h-spear');
-  var fx = q('.intro-fx'), fxSpear = q('#fx-spear'), trail = q('#fx-trail'), trailGrad = q('#fx-trail-grad');
+  var jRoot = q('#h-root'), jTorso = q('#h-torso'), jHead = q('#h-head'), jCloak = q('#h-cloak');
+  var jUarm = q('#h-uarm'), jFarm = q('#h-farm'), spearIn = q('#h-spear');
+  var jBT = q('#h-bthigh'), jBS = q('#h-bshin'), jFT = q('#h-fthigh'), jFS = q('#h-fshin'), jShadow = q('#h-shadow');
+  var footMark = q('#h-ffoot');
+  var fx = q('.intro-fx'), dustG = q('#fx-dust'), fxSpear = q('#fx-spear'), trail = q('#fx-trail'), trailGrad = q('#fx-trail-grad');
   var flash = q('#fx-flash'), flashCore = q('#fx-flash-core');
   var seamL = q('#fx-seam-l'), seamR = q('#fx-seam-r'), seamGL = q('#fx-seam-gl'), seamGR = q('#fx-seam-gr');
   var glowFilter = q('#fx-glow'), glowFilter2 = q('#fx-glow-wide');
@@ -27,10 +30,10 @@
 
   // Timeline (ms)
   var T = {
-    starsIn: [0, 900], hopIn: [250, 1150], windup: [1150, 1900], throwP: [1900, 2160],
-    follow: [2160, 2750], flight: [2160, 2560], impact: 2560, seam: [2590, 3000],
-    dim: [2850, 3450], spearOut: [2950, 3350], laurel: [3050, 3750], word: [3200, 3900], tag: [3500, 4050],
-    split: [4350, 5450], end: 5500
+    starsIn: [0, 900], hopIn: [250, 1250], windup: [1300, 2050], throwP: [2050, 2290],
+    follow: [2290, 2950], flight: [2290, 2690], impact: 2690, seam: [2720, 3130],
+    dim: [3000, 3600], spearOut: [3080, 3480], laurel: [3180, 3880], word: [3330, 4030], tag: [3630, 4180],
+    split: [4500, 5600], end: 5650
   };
   if (reduce) {
     T = { starsIn: [0, 400], hopIn: [0, 0], windup: [0, 0], throwP: [0, 0], follow: [0, 0], flight: [0, 0], impact: -1, seam: [0, 0],
@@ -49,7 +52,10 @@
 
   // Layout
   var W, H, seamY, figH, layoutDone = false, rel = null, revealFired = false;
-  var HAND = [204, 156], SHOULDER = [262, 246], HIP = [274, 360], TIP = 312;
+  var TIP = 312;
+  var JT = { HIP: [272, 352], BHIP: [258, 356], BKNEE: [224, 446], FHIP: [286, 356], FKNEE: [338, 432],
+    SHOULDER: [262, 246], ELBOW: [222, 206], NECK: [290, 228] };
+  var dust = [];
 
   function layout() {
     W = window.innerWidth; H = window.innerHeight;
@@ -118,36 +124,46 @@
     top.style.backgroundPosition = '0 0'; bot.style.backgroundPosition = '0 ' + (-seamY) + 'px';
   }
 
-  // Hoplite pose before release: angles in degrees
-  function pose(t) {
-    var w = eIO(prog(t, T.windup)), th = prog(t, T.throwP), f = eOut(prog(t, T.follow));
-    var armA = lerp(0, -22, w), up = lerp(0, -6, w), sp = lerp(-12, -15, w);
-    if (t >= T.throwP[0]) {
-      var tt = eIn(th) * .7 + th * .3;
-      armA = lerp(-22, 46, tt); up = lerp(-6, 7, tt); sp = lerp(-15, -19, tt);
-    }
-    if (t >= T.follow[0]) { armA = lerp(46, 104, f); up = lerp(7, 3, eIO(prog(t, T.follow))); }
-    return { arm: armA, up: up, spear: sp };
+  // Hoplite pose: joint angles in degrees (positive = clockwise on screen), root shift in design px
+  var P0 = { torso: 0, uarm: 0, farm: 0, head: 0, root: 0, bt: 0, bs: 0, ft: 0, fs: 0, cloak: 0, spear: -16 };
+  var P1 = { torso: -9, uarm: -22, farm: -10, head: -3, root: -14, bt: 5, bs: 9, ft: -5, fs: -4, cloak: -5, spear: -14 };
+  var P2 = { torso: 14, uarm: 74, farm: 50, head: 5, root: 28, bt: 14, bs: 32, ft: -2, fs: 9, cloak: 20, spear: -26 };
+  var P3 = { torso: 17, uarm: 122, farm: 28, head: 7, root: 36, bt: 16, bs: 40, ft: 0, fs: 12, cloak: 9, spear: -26 };
+  function mixPose(a, b, t, tf) {
+    var o = {};
+    for (var k in a) o[k] = lerp(a[k], b[k], tf && tf[k] ? tf[k](t) : t);
+    return o;
   }
-
+  function pose(t) {
+    if (t < T.windup[0]) return P0;
+    if (t < T.throwP[0]) return mixPose(P0, P1, eIO(prog(t, T.windup)));
+    if (t < T.follow[0]) {
+      var th = prog(t, T.throwP), tt = eIn(th) * .65 + th * .35;
+      return mixPose(P1, P2, tt, { farm: function (u) { return Math.pow(u, 1.6); }, cloak: function (u) { return u * u; } });
+    }
+    return mixPose(P2, P3, eOut(prog(t, T.follow)), { bs: function (u) { return eIO(u); } });
+  }
+  function rot(el, a, p) { el.setAttribute('transform', 'rotate(' + a.toFixed(3) + ' ' + p[0] + ' ' + p[1] + ')'); }
   function applyPose(p) {
-    upper.setAttribute('transform', 'rotate(' + p.up.toFixed(3) + ' ' + HIP[0] + ' ' + HIP[1] + ')');
-    arm.setAttribute('transform', 'rotate(' + p.arm.toFixed(3) + ' ' + SHOULDER[0] + ' ' + SHOULDER[1] + ')');
-    var a = p.arm * D, dx = HAND[0] - SHOULDER[0], dy = HAND[1] - SHOULDER[1];
-    var hx = SHOULDER[0] + dx * Math.cos(a) - dy * Math.sin(a), hy = SHOULDER[1] + dx * Math.sin(a) + dy * Math.cos(a);
-    spearIn.setAttribute('transform', 'translate(' + hx.toFixed(2) + ' ' + hy.toFixed(2) + ') rotate(' + p.spear.toFixed(3) + ')');
+    jRoot.setAttribute('transform', 'translate(' + p.root.toFixed(2) + ' 0)');
+    rot(jTorso, p.torso, JT.HIP); rot(jHead, p.head, JT.NECK); rot(jCloak, p.cloak, JT.SHOULDER);
+    rot(jUarm, p.uarm, JT.SHOULDER); rot(jFarm, p.farm, JT.ELBOW);
+    rot(jBT, p.bt, JT.BHIP); rot(jBS, p.bs, JT.BKNEE); rot(jFT, p.ft, JT.FHIP); rot(jFS, p.fs, JT.FKNEE);
+    // the wrist keeps the spear aimed along the throw while the arm sweeps
+    var local = p.spear - (p.torso + p.uarm + p.farm);
+    spearIn.setAttribute('transform', 'translate(240 160) rotate(' + local.toFixed(3) + ')');
+    jShadow.setAttribute('rx', (120 + p.root * .6).toFixed(1));
   }
 
   // Where and how the spear leaves the hand, in screen space
   function release() {
     if (rel) return rel;
-    var saveT = 'translateX(0px)';
-    hopWrap.style.transform = saveT;
+    hopWrap.style.transform = 'translateX(0px)';
     applyPose(pose(T.flight[0] - 0.001));
     var m = spearIn.getScreenCTM();
     var ang = Math.atan2(m.b, m.a), sc = Math.hypot(m.a, m.b);
     var p0 = { x: m.e + Math.cos(ang) * TIP * sc, y: m.f + Math.sin(ang) * TIP * sc };
-    var tx = clamp(p0.x + W * .42, W * .64, W * .9);
+    var tx = clamp(p0.x + W * .4, W * .66, W * .9);
     if (W < 720) tx = clamp(p0.x + W * .3, W * .6, W * .86);
     var tgt = { x: tx, y: seamY };
     var dist = Math.hypot(tgt.x - p0.x, tgt.y - p0.y);
@@ -181,7 +197,7 @@
     var hi = eOut(prog(t, T.hopIn)), dim = eIO(prog(t, T.dim));
     var hopOpacity = reduce ? 0 : hi * lerp(1, .14, dim);
     hopWrap.style.opacity = hopOpacity.toFixed(3);
-    hopWrap.style.transform = 'translateX(' + ((1 - hi) * -36).toFixed(2) + 'px)';
+    hopWrap.style.transform = 'translateX(' + ((1 - hi) * -70).toFixed(2) + 'px)';
     glow.style.opacity = (hi * lerp(1, .2, dim)).toFixed(3);
 
     if (!reduce) {
@@ -190,7 +206,7 @@
       spearIn.style.opacity = released ? 0 : 1;
       if (released) {
         var r = release();
-        hopWrap.style.transform = 'translateX(' + ((1 - hi) * -36).toFixed(2) + 'px)';
+        hopWrap.style.transform = 'translateX(' + ((1 - hi) * -70).toFixed(2) + 'px)';
         applyPose(pose(t));
         fxSpear.style.display = '';
         var u = prog(t, T.flight); u = u * .82 + eIn(u) * .18;
@@ -204,6 +220,7 @@
           ang += Math.sin(since / 22) * Math.exp(-since / 140) * 2.6 * D;
         }
         setSpear(tip, ang, r.sc);
+        drawDust(t);
         fxSpear.style.opacity = (1 - eIO(prog(t, T.spearOut))).toFixed(3);
 
         // Trail along the arc
@@ -263,6 +280,22 @@
     }
     top.style.transform = 'translateY(' + (-sp2 * (seamY + 40)).toFixed(2) + 'px)';
     bot.style.transform = 'translateY(' + (sp2 * (H - seamY + 40)).toFixed(2) + 'px)';
+  }
+
+  function drawDust(t) {
+    if (!dustG) return;
+    if (!dust.length) {
+      var m = footMark.getScreenCTM(); var fxp = { x: m.e, y: m.f };
+      for (var i = 0; i < 7; i++) dust.push({ x: fxp.x - 10 - i * 9, y: fxp.y - 2 - (i % 3) * 4, r: 5 + (i % 4) * 3, d: i * 35 });
+    }
+    var html = '';
+    for (var k = 0; k < dust.length; k++) {
+      var dd = dust[k], u = clamp((t - T.throwP[0] - 60 - dd.d) / 650, 0, 1);
+      if (u <= 0 || u >= 1) continue;
+      var e = eOut(u);
+      html += '<circle cx="' + (dd.x - e * 26).toFixed(1) + '" cy="' + (dd.y - e * 14).toFixed(1) + '" r="' + (dd.r * (0.4 + e * 1.6)).toFixed(1) + '" fill="#cfae78" opacity="' + ((1 - u) * .22).toFixed(3) + '"/>';
+    }
+    dustG.innerHTML = html;
   }
 
   function drawSeam(x, p) {

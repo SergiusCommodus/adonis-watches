@@ -28,7 +28,7 @@
 .intro-scene{position:absolute;inset:0;pointer-events:none}
 .intro-glow{position:absolute;border-radius:50%;background:radial-gradient(closest-side,rgba(214,168,96,.22),rgba(214,168,96,.06) 60%,transparent);opacity:0;pointer-events:none}
 .intro-hoplite{position:absolute;opacity:0;will-change:transform,opacity}
-.intro-hoplite svg{display:block;width:100%;height:100%;overflow:visible;filter:drop-shadow(0 0 10px rgba(226,182,108,.28))}
+.intro-hoplite svg{display:block;width:100%;height:100%;overflow:visible;filter:drop-shadow(0 0 8px rgba(226,182,108,.18))}
 .intro-fx{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
 
 .intro-skip{position:absolute;right:clamp(16px,3vw,36px);bottom:clamp(16px,3.4vh,34px);z-index:3;background:none;border:1px solid rgba(217,178,115,.45);
