@@ -376,7 +376,7 @@
     if (t < T.split[0]) { offset += T.split[0] - t; }
   }
   skipBtn.addEventListener('click', skip);
-  document.addEventListener('keydown', function (e) { if (e.key === 'Escape') skip(); });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && !intro.classList.contains('gated')) skip(); });
   window.addEventListener('resize', function () { if (!done) layout(); });
 
   layout();
@@ -385,10 +385,40 @@
     render(0);
     return;
   }
-  intro.classList.add('ready');
-  var go = function () { raf = requestAnimationFrame(tick); };
-  if (document.fonts && document.fonts.ready) {
-    var started = false, kick = function () { if (!started) { started = true; go(); } };
-    document.fonts.ready.then(kick); setTimeout(kick, 700);
-  } else go();
+  var go = function () { intro.classList.add('ready'); raf = requestAnimationFrame(tick); };
+  function begin() {
+    if (document.fonts && document.fonts.ready) {
+      var started = false, kick = function () { if (!started) { started = true; go(); } };
+      document.fonts.ready.then(kick); setTimeout(kick, 700);
+    } else go();
+  }
+
+  // Entry gate: browsers only allow sound after a click, so the first click
+  // starts the soundtrack and the opening sequence together.
+  var snd = window.__adonisAudio;
+  if (!snd || snd.isPlaying() || snd.isMuted()) { begin(); return; }
+  intro.classList.add('gated'); root.classList.add('intro-gated');
+  var gate = document.createElement('div');
+  gate.className = 'intro-gate';
+  gate.innerHTML = '<div class="intro-gate-in">' +
+    '<p class="intro-gate-eyebrow">Adonis</p>' +
+    '<button class="intro-gate-enter" type="button">Enter</button>' +
+    '<p class="intro-gate-note">Best experienced with sound</p>' +
+    '<button class="intro-gate-quiet" type="button">Enter without sound</button></div>';
+  intro.appendChild(gate);
+  var entered = false;
+  function enter(withSound) {
+    if (entered) return; entered = true;
+    if (withSound) snd.start(); else snd.stop();
+    gate.classList.add('out');
+    intro.classList.remove('gated'); root.classList.remove('intro-gated');
+    setTimeout(function () { gate.remove(); }, 700);
+    begin();
+  }
+  gate.querySelector('.intro-gate-enter').addEventListener('click', function () { enter(true); });
+  gate.querySelector('.intro-gate-quiet').addEventListener('click', function () { enter(false); });
+  document.addEventListener('keydown', function (e) { if (!entered && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); enter(true); } });
+  // If the browser lets the music start on its own (returning visitor), drop the gate.
+  if (snd.onplay) snd.onplay(function () { if (!entered) enter(true); });
+  gate.querySelector('.intro-gate-enter').focus({ preventScroll: true });
 })();

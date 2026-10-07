@@ -4,14 +4,21 @@
   var cfg = window.ADONIS_CONFIG || {};
 
   /* Header: solid once the page scrolls */
-  var header = document.querySelector('.site-header');
   function onScroll() {
+    var header = document.querySelector('.site-header');
     if (!header) return;
     header.classList.toggle('is-solid', window.scrollY > 24);
   }
   window.addEventListener('scroll', onScroll, { passive: true });
   onScroll();
 
+  document.addEventListener('keydown', function (e) {
+    var toggle = document.querySelector('.menu-toggle');
+    if (toggle && e.key === 'Escape' && root.classList.contains('menu-open')) { root.classList.remove('menu-open'); toggle.setAttribute('aria-expanded', 'false'); toggle.focus(); }
+  });
+
+  function init(first) {
+  body = document.body;
   /* Mobile menu */
   var toggle = document.querySelector('.menu-toggle');
   if (toggle) {
@@ -23,14 +30,11 @@
     document.querySelectorAll('.mobile-menu a').forEach(function (a) {
       a.addEventListener('click', function () { root.classList.remove('menu-open'); toggle.setAttribute('aria-expanded', 'false'); });
     });
-    document.addEventListener('keydown', function (e) {
-      if (e.key === 'Escape' && root.classList.contains('menu-open')) { root.classList.remove('menu-open'); toggle.setAttribute('aria-expanded', 'false'); toggle.focus(); }
-    });
   }
 
   /* Hero entrance after the intro (or right away) */
   function loaded() { body.classList.add('is-loaded'); }
-  if (document.getElementById('intro') && !window.__adonisIntroDone) {
+  if (first && document.getElementById('intro') && !window.__adonisIntroDone) {
     document.addEventListener('adonis:introreveal', function () { setTimeout(loaded, 250); });
     document.addEventListener('adonis:introdone', function () { setTimeout(loaded, 80); });
     // safety net
@@ -135,4 +139,60 @@
 
   /* Year */
   document.querySelectorAll('[data-year]').forEach(function (el) { el.textContent = new Date().getFullYear(); });
+  onScroll();
+  }
+  init(true);
+
+  /* In place navigation: pages swap without a full reload so the soundtrack never stops. */
+  if (!window.fetch || !window.history || !history.pushState || !window.DOMParser) return;
+  var busy = false;
+  function sameSite(url) {
+    return url.origin === location.origin && /(\.html|\/)$/.test(url.pathname) && !url.searchParams.has('intro');
+  }
+  function swap(url, push, hash) {
+    if (busy) return; busy = true;
+    var pageEl = document.getElementById('page');
+    if (pageEl) pageEl.classList.add('is-leaving');
+    fetch(url.href, { credentials: 'same-origin' }).then(function (r) {
+      if (!r.ok) throw new Error('status');
+      return r.text();
+    }).then(function (html) {
+      var doc = new DOMParser().parseFromString(html, 'text/html');
+      var next = doc.getElementById('page');
+      if (!next) throw new Error('no page');
+      if (push) history.pushState({ adonis: 1 }, '', url.href);
+      document.title = doc.title;
+      var md = document.querySelector('meta[name="description"]'), nd = doc.querySelector('meta[name="description"]');
+      if (md && nd) md.setAttribute('content', nd.getAttribute('content'));
+      document.body.setAttribute('data-header', doc.body.getAttribute('data-header') || 'solid');
+      root.classList.remove('menu-open', 'intro-revealing', 'intro-active');
+      var old = document.getElementById('page');
+      var fresh = document.importNode(next, true);
+      fresh.classList.add('is-entering');
+      old.parentNode.replaceChild(fresh, old);
+      var intro = document.getElementById('intro'); if (intro) intro.remove();
+      var target = hash && document.getElementById(hash.slice(1));
+      if (target) target.scrollIntoView(); else window.scrollTo(0, 0);
+      body.classList.remove('is-loaded');
+      init(false);
+      var main = document.getElementById('main');
+      if (main) { main.setAttribute('tabindex', '-1'); main.focus({ preventScroll: true }); }
+      busy = false;
+    }).catch(function () { location.href = url.href; });
+  }
+  document.addEventListener('click', function (e) {
+    if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+    var a = e.target.closest && e.target.closest('a[href]');
+    if (!a || a.target && a.target !== '_self' || a.hasAttribute('download') || a.getAttribute('rel') === 'external') return;
+    var url = new URL(a.href, location.href);
+    if (!sameSite(url)) return;
+    if (url.pathname === location.pathname && url.search === location.search && url.hash) return; // same page anchor
+    e.preventDefault();
+    swap(url, true, url.hash);
+  });
+  history.replaceState({ adonis: 1 }, '', location.href);
+  window.addEventListener('popstate', function (e) {
+    if (!e.state || !e.state.adonis) return;
+    swap(new URL(location.href), false, location.hash);
+  });
 })();

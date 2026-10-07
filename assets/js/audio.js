@@ -26,6 +26,7 @@
     '.snd:hover,.snd:focus-visible{background:#d9b273;color:#050506;outline:none}' +
     '.snd svg{width:18px;height:18px;flex:none}.snd .bar{transform-origin:center bottom;transform-box:fill-box}' +
     '.snd[aria-pressed="true"] .bar{animation:sndbar 1.1s ease-in-out infinite}.snd .bar:nth-child(2){animation-delay:.18s}.snd .bar:nth-child(3){animation-delay:.36s}.snd .bar:nth-child(4){animation-delay:.1s}' +
+    'html.intro-gated .snd{opacity:0;pointer-events:none}' +
     '@keyframes sndbar{0%,100%{transform:scaleY(.35)}50%{transform:scaleY(1)}}' +
     '@media (prefers-reduced-motion:reduce){.snd .bar{animation:none!important}}@media (max-width:560px){.snd{height:36px;padding:0 12px 0 10px}.snd span{display:none}}';
   document.head.appendChild(css);
@@ -69,7 +70,7 @@
   });
 
   var evs = ['pointerdown', 'keydown', 'touchend'];
-  function onGesture(e) { if (e.target === btn || (btn.contains && btn.contains(e.target))) return; if (e.type === 'keydown' && e.key === 'Escape') return; start(); }
+  function onGesture(e) { if (btn.contains(e.target) || (e.target.closest && e.target.closest('.intro-gate'))) return; if (e.type === 'keydown' && e.key === 'Escape') return; start(); }
   function removeGestures() { evs.forEach(function (n) { window.removeEventListener(n, onGesture, true); }); }
   evs.forEach(function (n) { window.addEventListener(n, onGesture, true); });
 
@@ -83,5 +84,8 @@
 
   /* try right away: allowed when the visitor has interacted with the site before */
   if (wantOn) start();
-  window.__adonisAudio = { el: a, start: start, stop: stop };
+  var playCbs = [];
+  a.addEventListener('playing', function () { playCbs.forEach(function (f) { f(); }); });
+  window.__adonisAudio = { el: a, start: function () { wantOn = true; set(localStorage, KEY_OFF, '0'); start(); }, stop: stop,
+    isPlaying: function () { return playing; }, isMuted: function () { return !wantOn; }, onplay: function (f) { playCbs.push(f); } };
 })();

@@ -38,6 +38,10 @@ button,input,select,textarea{font:inherit;color:inherit}
 .skip-link{position:absolute;left:12px;top:-60px;z-index:2000;background:var(--ink);color:#fff;padding:10px 16px;font-size:13px;letter-spacing:.12em;text-transform:uppercase}
 .skip-link:focus{top:12px}
 #page{transform-origin:50% 30%}
+#page.is-leaving{opacity:0;transition:opacity .22s ease}
+#page.is-entering{animation:pageIn .5s ease both}
+@keyframes pageIn{from{opacity:0}to{opacity:1}}
+@media (prefers-reduced-motion:reduce){#page.is-entering{animation:none}}
 
 /* ---------- Type ---------- */
 h1,h2,h3,h4{font-family:var(--serif);font-weight:400;line-height:1.08;margin:0;letter-spacing:.005em}
