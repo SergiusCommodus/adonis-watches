@@ -12,7 +12,7 @@
   function set(s, k, v) { try { s.setItem(k, v); } catch (e) {} }
 
   var a = new Audio(base + 'audio/anthem.mp3');
-  a.loop = true; a.preload = 'auto'; a.volume = 0;
+  a.loop = true; a.preload = 'none'; a.volume = 0;
   var wantOn = get(localStorage, KEY_OFF) !== '1';
   var playing = false, fadeTimer = null;
 
@@ -39,9 +39,8 @@
   function paint() {
     var on = wantOn && playing;
     btn.setAttribute('aria-pressed', on ? 'true' : 'false');
-    label.textContent = on ? 'Sound on' : (wantOn ? 'Sound on' : 'Sound off');
-    if (wantOn && !playing) label.textContent = 'Tap for sound';
-    btn.setAttribute('aria-label', on ? 'Mute soundtrack' : 'Play soundtrack');
+    label.textContent = on ? 'Sound on' : (wantOn ? 'Tap for sound' : 'Sound off');
+    btn.setAttribute('aria-label', label.textContent + (on ? ', mute soundtrack' : ', play soundtrack'));
   }
   function mount() { document.body.appendChild(btn); paint(); }
   if (document.body) mount(); else document.addEventListener('DOMContentLoaded', mount);
@@ -82,8 +81,11 @@
   window.addEventListener('pagehide', function () { set(sessionStorage, KEY_POS, String(a.currentTime || 0)); });
   setInterval(function () { if (playing) set(sessionStorage, KEY_POS, String(a.currentTime || 0)); }, 2000);
 
-  /* try right away: allowed when the visitor has interacted with the site before */
-  if (wantOn) start();
+  /* Try right away when the browser says sound may autoplay (returning visitors in Chrome
+     and Firefox). Otherwise wait for a gesture, so the track is not downloaded for nothing. */
+  var policy = '';
+  try { if (navigator.getAutoplayPolicy) policy = navigator.getAutoplayPolicy('mediaelement'); } catch (e) {}
+  if (wantOn && (policy === 'allowed' || policy === '')) start();
   var playCbs = [];
   a.addEventListener('playing', function () { playCbs.forEach(function (f) { f(); }); });
   window.__adonisAudio = { el: a, start: function () { wantOn = true; set(localStorage, KEY_OFF, '0'); start(); }, stop: stop,

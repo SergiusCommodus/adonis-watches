@@ -34,7 +34,8 @@ Everything is plain HTML, CSS and JavaScript with no build step. Edit a file, co
 
 * Styles: `assets/css/style.css` (site) and `assets/css/intro.css` (opening sequence)
 * Behaviour: `assets/js/main.js` (menu, galleries, forms) and `assets/js/intro.js` (opening sequence)
-* Images: `assets/img`
+* Images: `assets/img`. Large images also have a `-640` copy that phones load instead; if you replace an image, replace both.
+* Soundtrack: `assets/audio/anthem.mp3`, controlled by `assets/js/audio.js`
 * Fonts: Cinzel, Cormorant Garamond and Jost, self hosted in `assets/fonts` under the SIL Open Font License
 
 Prices, dates and specifications on the site are marked as preliminary where they are not final. Keep it that way until production figures are confirmed.
