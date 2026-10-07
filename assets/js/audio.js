@@ -5,13 +5,13 @@
   'use strict';
   var script = document.currentScript;
   var base = script ? script.src.replace(/js\/audio\.js.*$/, '') : '/assets/';
-  var KEY_OFF = 'adonis-sound-off', KEY_POS = 'adonis-sound-pos';
+  var KEY_OFF = 'adonis-sound-off', KEY_POS = 'adonis-anthem-pos';
   var TARGET = 0.55, FADE_MS = 1800;
   var reduce = false;
   function get(s, k) { try { return s.getItem(k); } catch (e) { return null; } }
   function set(s, k, v) { try { s.setItem(k, v); } catch (e) {} }
 
-  var a = new Audio(base + 'audio/theme.mp3');
+  var a = new Audio(base + 'audio/anthem.mp3');
   a.loop = true; a.preload = 'auto'; a.volume = 0;
   var wantOn = get(localStorage, KEY_OFF) !== '1';
   var playing = false, fadeTimer = null;
