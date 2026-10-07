@@ -13,7 +13,8 @@
 
   var a = new Audio(base + 'audio/anthem.mp3');
   a.loop = true; a.preload = 'none'; a.volume = 0;
-  var wantOn = get(localStorage, KEY_OFF) !== '1';
+  try { localStorage.removeItem(KEY_OFF); } catch (e) {}
+  var wantOn = get(sessionStorage, KEY_OFF) !== '1';
   var playing = false, fadeTimer = null;
 
   var pos = parseFloat(get(sessionStorage, KEY_POS));
@@ -60,15 +61,15 @@
     if (p && p.then) p.then(function () { playing = true; paint(); fadeTo(TARGET, FADE_MS); removeGestures(); }, function () { playing = false; paint(); });
     else { playing = true; paint(); fadeTo(TARGET, FADE_MS); removeGestures(); }
   }
-  function stop() { wantOn = false; set(localStorage, KEY_OFF, '1'); fadeTo(0, 500, function () { a.pause(); playing = false; paint(); }); paint(); }
-  function resume() { wantOn = true; set(localStorage, KEY_OFF, '0'); playing = false; start(); }
+  function stop() { wantOn = false; set(sessionStorage, KEY_OFF, '1'); fadeTo(0, 500, function () { a.pause(); playing = false; paint(); }); paint(); }
+  function resume() { wantOn = true; set(sessionStorage, KEY_OFF, '0'); playing = false; start(); }
 
   btn.addEventListener('click', function (e) {
     e.stopPropagation();
     if (wantOn && playing) stop(); else resume();
   });
 
-  var evs = ['pointerdown', 'keydown', 'touchend'];
+  var evs = ['click', 'pointerup', 'touchend', 'keydown'];
   function onGesture(e) { if (btn.contains(e.target) || (e.target.closest && e.target.closest('.intro-gate'))) return; if (e.type === 'keydown' && e.key === 'Escape') return; start(); }
   function removeGestures() { evs.forEach(function (n) { window.removeEventListener(n, onGesture, true); }); }
   evs.forEach(function (n) { window.addEventListener(n, onGesture, true); });
@@ -88,6 +89,6 @@
   if (wantOn && (policy === 'allowed' || policy === '')) start();
   var playCbs = [];
   a.addEventListener('playing', function () { playCbs.forEach(function (f) { f(); }); });
-  window.__adonisAudio = { el: a, start: function () { wantOn = true; set(localStorage, KEY_OFF, '0'); start(); }, stop: stop,
+  window.__adonisAudio = { el: a, start: function () { wantOn = true; set(sessionStorage, KEY_OFF, '0'); start(); }, stop: stop,
     isPlaying: function () { return playing; }, isMuted: function () { return !wantOn; }, onplay: function (f) { playCbs.push(f); } };
 })();
