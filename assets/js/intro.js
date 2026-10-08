@@ -1,4 +1,5 @@
-/* Adonis opening sequence: a hoplite throws a spear, the strike cuts the night open, the site is revealed. */
+/* Adonis opening sequence: a spear flies in, sweeping around in a spinning arc,
+   strikes, and the light of the strike cuts the night open to reveal the site. */
 (function () {
   var root = document.documentElement;
   var intro = document.getElementById('intro');
@@ -16,13 +17,8 @@
   // Elements
   var q = function (s) { return intro.querySelector(s); };
   var top = q('.intro-top'), bot = q('.intro-bottom'), scene = q('.intro-scene');
-  var hopWrap = q('.intro-hoplite'), glow = q('.intro-glow');
-  var jRoot = q('#h-root'), jTorso = q('#h-torso'), jHead = q('#h-head'), jCloak = q('#h-cloak');
-  var jUarm = q('#h-uarm'), jFarm = q('#h-farm'), spearIn = q('#h-spear');
-  var jBT = q('#h-bthigh'), jBS = q('#h-bshin'), jFT = q('#h-fthigh'), jFS = q('#h-fshin'), jShadow = q('#h-shadow');
-  var jCrest = q('#h-crest'), blurFe = q('#h-blur-fe');
-  var footMark = q('#h-ffoot');
-  var fx = q('.intro-fx'), dustG = q('#fx-dust'), fxSpear = q('#fx-spear'), trail = q('#fx-trail'), trailGrad = q('#fx-trail-grad');
+  var fx = q('.intro-fx'), fxSpear = q('#fx-spear'), trail = q('#fx-trail'), trailGrad = q('#fx-trail-grad');
+  var trailWide = q('#fx-trail-wide');
   var flash = q('#fx-flash'), flashCore = q('#fx-flash-core');
   var seamL = q('#fx-seam-l'), seamR = q('#fx-seam-r'), seamGL = q('#fx-seam-gl'), seamGR = q('#fx-seam-gr');
   var glowFilter = q('#fx-glow'), glowFilter2 = q('#fx-glow-wide');
@@ -31,14 +27,13 @@
 
   // Timeline (ms)
   var T = {
-    starsIn: [0, 900], hopIn: [500, 2000], windup: [2000, 2650], throwP: [2650, 2870],
-    follow: [2870, 3600], flight: [2870, 3270], impact: 3270, seam: [3300, 3720],
-    dim: [3560, 4160], spearOut: [3660, 4060], laurel: [3760, 4460], word: [3900, 4600], tag: [4200, 4750],
-    split: [5100, 6200], end: 6250
+    starsIn: [0, 800], flight: [350, 2750], impact: 2750, seam: [2780, 3200],
+    spearOut: [3150, 3550], laurel: [3250, 3950], word: [3400, 4100], tag: [3700, 4250],
+    split: [4600, 5700], end: 5750
   };
   if (reduce) {
-    T = { starsIn: [0, 400], hopIn: [0, 0], windup: [0, 0], throwP: [0, 0], follow: [0, 0], flight: [0, 0], impact: -1, seam: [0, 0],
-      dim: [0, 0], spearOut: [0, 0], laurel: [200, 800], word: [300, 900], tag: [500, 1000], split: [1700, 2500], end: 2550 };
+    T = { starsIn: [0, 400], flight: [0, 0], impact: -1, seam: [0, 0], spearOut: [0, 0],
+      laurel: [200, 800], word: [300, 900], tag: [500, 1000], split: [1700, 2500], end: 2550 };
   }
 
   // Math helpers
@@ -52,28 +47,18 @@
   var D = Math.PI / 180;
 
   // Layout
-  var W, H, seamY, figH, runDist = 0, layoutDone = false, rel = null, revealFired = false;
-  var TIP = 312;
-  var JT = { HIP: [272, 352], BHIP: [258, 356], BKNEE: [224, 446], FHIP: [286, 356], FKNEE: [338, 432],
-    SHOULDER: [262, 246], ELBOW: [222, 206], NECK: [290, 228], CREST: [292, 158] };
-  var dust = [];
+  var W, H, seamY, layoutDone = false, revealFired = false;
+  var P = { x: 0, y: 0 }, RX = 0, RY = 0, SC = 1;
+  var TIP = 312; // spear tip in spear design units
 
   function layout() {
     W = window.innerWidth; H = window.innerHeight;
     var mobile = W < 720;
     seamY = Math.round(H * (mobile ? 0.5 : 0.47));
-    figH = Math.min(H * (mobile ? 0.52 : 0.68), W * (mobile ? 1.05 : 0.6));
-    var figW = figH * 480 / 530;
-    runDist = cx + figW * .9;
-    var cx = W * (mobile ? 0.3 : 0.22);
-    var left = cx - figW * 0.46;
-    var bottom = H * (mobile ? 0.07 : 0.06);
-    hopWrap.style.width = figW + 'px'; hopWrap.style.height = figH + 'px';
-    hopWrap.style.left = left + 'px'; hopWrap.style.top = (H - bottom - figH) + 'px';
-    var gs = figH * 1.15;
-    glow.style.width = glow.style.height = gs + 'px';
-    glow.style.left = (cx - gs / 2) + 'px'; glow.style.top = (H - bottom - figH / 2 - gs / 2) + 'px';
-
+    P = { x: W / 2, y: seamY };                          // the strike point
+    RX = W * (mobile ? .38 : .36);                       // orbit size, kept inside the screen
+    RY = mobile ? Math.min(H * .28, RX * 1.5) : Math.min(H * .36, RX * .8);
+    SC = clamp(Math.min(W, H * 1.6) / 1500, .36, .6);   // spear size
     top.style.height = seamY + 'px';
     bot.style.top = seamY + 'px'; bot.style.height = (H - seamY) + 'px';
     fx.setAttribute('viewBox', '0 0 ' + W + ' ' + H);
@@ -81,7 +66,6 @@
       f.setAttribute('x', -50); f.setAttribute('y', -50); f.setAttribute('width', W + 100); f.setAttribute('height', H + 100);
     });
     paintSky();
-    rel = null; // release point must be recomputed
     layoutDone = true;
   }
 
@@ -126,95 +110,34 @@
     top.style.backgroundPosition = '0 0'; bot.style.backgroundPosition = '0 ' + (-seamY) + 'px';
   }
 
-  // Hoplite pose: joint angles in degrees (positive = clockwise on screen), root shift in design px
-  var KEYS = ['torso','uarm','farm','head','root','rooty','bt','bs','ft','fs','cloak','spear'];
-  function mk(o) { var r = {}; KEYS.forEach(function (k) { r[k] = o[k] || 0; }); return r; }
-  var P_RUN  = mk({ torso: 9, uarm: 4, farm: -28, head: -4, spear: -8, cloak: 14 });          // carrying the spear at the shoulder
-  var P_SET  = mk({ torso: 2, uarm: -6, farm: -4, head: -1, root: 0, bt: 2, bs: 4, ft: -4, fs: -2, cloak: 4, spear: -16 });
-  var P_BACK = mk({ torso: -11, uarm: -26, farm: -12, head: -4, root: -16, bt: 6, bs: 10, ft: -6, fs: -4, cloak: -6, spear: -13 });
-  var P_REL  = mk({ torso: 15, uarm: 76, farm: 52, head: 6, root: 30, bt: 15, bs: 32, ft: -2, fs: 9, cloak: 22, spear: -27 });
-  var P_END  = mk({ torso: 17, uarm: 124, farm: 26, head: 7, root: 38, bt: 16, bs: 40, ft: 0, fs: 12, cloak: 8, spear: -27 });
-  function mixPose(a, b, t, tf) {
-    var o = {};
-    for (var k in a) o[k] = lerp(a[k], b[k], tf && tf[k] ? tf[k](t) : t);
-    return o;
-  }
-  var STRIDES = 2.5;
-  function runPose(u) {
-    // u 0..1 across the run up; the legs cycle, the body bobs, the last stride settles into the set position
-    var ph = u * STRIDES * Math.PI * 2, s = Math.sin(ph), c = Math.cos(ph);
-    var amp = 30 * (1 - Math.pow(u, 6));
-    var p = mk({});
-    for (var k in P_RUN) p[k] = P_RUN[k];
-    p.bt = -s * amp; p.bs = Math.max(0, -c) * amp * 1.6 + 6;
-    p.ft = s * amp; p.fs = Math.max(0, c) * amp * 1.6 + 6;
-    p.rooty = -Math.abs(Math.sin(ph)) * 7 * (1 - u * .5);
-    p.cloak = 14 + s * 5;
-    p.head = -4 + Math.abs(s) * 2;
-    return p;
-  }
-  function pose(t) {
-    if (t < T.hopIn[0]) return runPose(0);
-    if (t < T.hopIn[1]) {
-      var u = prog(t, T.hopIn), rp = runPose(u), blend = eIO(clamp((u - .72) / .28, 0, 1));
-      return mixPose(rp, P_SET, blend);
-    }
-    if (t < T.throwP[0]) return mixPose(P_SET, P_BACK, eIO(prog(t, T.windup)));
-    if (t < T.follow[0]) {
-      var th = prog(t, T.throwP), tt = eIn(th) * .6 + th * .4;
-      return mixPose(P_BACK, P_REL, tt, { farm: function (v) { return Math.pow(v, 1.7); }, cloak: function (v) { return v * v; }, head: function (v) { return Math.sqrt(v); } });
-    }
-    return mixPose(P_REL, P_END, eOut(prog(t, T.follow)), { bs: function (v) { return eIO(v); }, cloak: function (v) { return eOut(v); } });
-  }
-  function rot(el, a, p) { el.setAttribute('transform', 'rotate(' + a.toFixed(3) + ' ' + p[0] + ' ' + p[1] + ')'); }
-  // Secondary motion: cloak and crest lag behind the body
-  var lag = { cloak: null, crest: 0, lastT: 0, lastTorso: 0 };
-  function applyPose(p, t) {
-    var dt = t === undefined ? 16 : clamp(t - lag.lastT, 0, 50); if (t !== undefined) lag.lastT = t;
-    var cl = p.cloak;
-    if (lag.cloak === null || dt === 0) lag.cloak = cl; else lag.cloak += (cl - lag.cloak) * Math.min(1, dt / 110);
-    var torsoVel = (p.torso - lag.lastTorso); lag.lastTorso = p.torso;
-    lag.crest += ((-torsoVel * 1.8) - lag.crest) * Math.min(1, dt / 90);
-    jRoot.setAttribute('transform', 'translate(' + p.root.toFixed(2) + ' ' + p.rooty.toFixed(2) + ')');
-    rot(jTorso, p.torso, JT.HIP); rot(jHead, p.head, JT.NECK); rot(jCloak, lag.cloak, JT.SHOULDER);
-    rot(jCrest, clamp(lag.crest, -14, 14), JT.CREST);
-    rot(jUarm, p.uarm, JT.SHOULDER); rot(jFarm, p.farm, JT.ELBOW);
-    rot(jBT, p.bt, JT.BHIP); rot(jBS, p.bs, JT.BKNEE); rot(jFT, p.ft, JT.FHIP); rot(jFS, p.fs, JT.FKNEE);
-    var local = p.spear - (p.torso + p.uarm + p.farm);
-    spearIn.setAttribute('transform', 'translate(240 160) rotate(' + local.toFixed(3) + ')');
-    jShadow.setAttribute('rx', (120 + p.root * .6).toFixed(1));
-    jShadow.setAttribute('opacity', (.6 + p.rooty * .03).toFixed(3));
-    // motion blur on the forearm during the whip
-    var inThrow = t !== undefined && t > T.throwP[0] + 60 && t < T.throwP[1] + 40;
-    blurFe.setAttribute('stdDeviation', inThrow ? '2.2 1.2' : '0 0');
-  }
 
-  // Where and how the spear leaves the hand, in screen space
-  function release() {
-    if (rel) return rel;
-    hopWrap.style.transform = 'translateX(0px)';
-    applyPose(pose(T.flight[0] - 0.001));
-    var m = spearIn.getScreenCTM();
-    var ang = Math.atan2(m.b, m.a), sc = Math.hypot(m.a, m.b);
-    var p0 = { x: m.e + Math.cos(ang) * TIP * sc, y: m.f + Math.sin(ang) * TIP * sc };
-    var tx = clamp(p0.x + W * .4, W * .66, W * .9);
-    if (W < 720) tx = clamp(p0.x + W * .3, W * .6, W * .86);
-    var tgt = { x: tx, y: seamY };
-    var dist = Math.hypot(tgt.x - p0.x, tgt.y - p0.y);
-    var k = dist * .3;
-    var c = { x: p0.x + Math.cos(ang) * k, y: p0.y + Math.sin(ang) * k };
-    rel = { p0: p0, c: c, t: tgt, sc: sc, ang: ang };
-    return rel;
+  // The flight: an inward spiral around the strike point. The spear enters from the left,
+  // sweeps one and a quarter turns around the centre and dives in. It always points along
+  // its path, so it visibly turns through the whole circle as it flies.
+  var TURNS = 1.1, A0 = Math.PI * .92, SPINS = 2.75, MID = 69, HALF = 245;
+  function flightPos(u) {
+    // clockwise on screen; the turning eases off at the end so the final dive runs straight in
+    var a = A0 + TURNS * Math.PI * 2 * (1 - Math.pow(1 - u, 1.9));
+    // the orbit tightens as it goes; it starts wider so the spear enters from off screen
+    var k = Math.pow(1 - u, 1.05) * (1 + .75 * Math.pow(1 - clamp(u / .22, 0, 1), 2));
+    return { x: P.x + Math.cos(a) * RX * k, y: P.y + Math.sin(a) * RY * k };
   }
+  function flightAngle(u) {
+    var a = flightPos(Math.max(0, u - .004)), b = flightPos(Math.min(1, u + .004));
+    if (u >= .996) { a = flightPos(.988); b = flightPos(1); }
+    return Math.atan2(b.y - a.y, b.x - a.x);
+  }
+  // time to path position: quick entry, a gliding orbit, then an accelerating dive
+  function flightU(p) { return .55 * p + .45 * p * p; }
+  // perspective: smaller far away, full size at the strike
+  function flightScale(u) { return SC * lerp(.68, 1, eIO(u)); }
 
-  function bez(r, u) {
-    var a = (1 - u) * (1 - u), b = 2 * (1 - u) * u, d = u * u;
-    return { x: a * r.p0.x + b * r.c.x + d * r.t.x, y: a * r.p0.y + b * r.c.y + d * r.t.y };
+  function spinAt(u) { return SPINS * Math.PI * 2 * Math.pow(1 - clamp(u / .9, 0, 1), 2.2); }
+  // place the spear by its centre, so it spins about its balance point
+  function setSpearMid(c, ang, sc) {
+    var gx = c.x - Math.cos(ang) * MID * sc, gy = c.y - Math.sin(ang) * MID * sc;
+    fxSpear.setAttribute('transform', 'translate(' + gx.toFixed(2) + ' ' + gy.toFixed(2) + ') rotate(' + (ang / D).toFixed(3) + ') scale(' + sc.toFixed(4) + ')');
   }
-  function bezTan(r, u) {
-    return Math.atan2(2 * (1 - u) * (r.c.y - r.p0.y) + 2 * u * (r.t.y - r.c.y), 2 * (1 - u) * (r.c.x - r.p0.x) + 2 * u * (r.t.x - r.c.x));
-  }
-
   function setSpear(tip, ang, sc) {
     var gx = tip.x - Math.cos(ang) * TIP * sc, gy = tip.y - Math.sin(ang) * TIP * sc;
     fxSpear.setAttribute('transform', 'translate(' + gx.toFixed(2) + ' ' + gy.toFixed(2) + ') rotate(' + (ang / D).toFixed(3) + ') scale(' + sc.toFixed(4) + ')');
@@ -225,75 +148,63 @@
     // Sky
     var s = eOut(prog(t, T.starsIn));
     top.style.opacity = bot.style.opacity = s;
-    meander.style.opacity = (.55 * s * (1 - prog(t, T.split) * 0)).toFixed(3);
-
-    // Hoplite entrance and dimming
-    var hu = prog(t, T.hopIn), hi = eOut(hu), dim = eIO(prog(t, T.dim));
-    var hopOpacity = reduce ? 0 : clamp(hu * 4, 0, 1) * lerp(1, .14, dim);
-    hopWrap.style.opacity = hopOpacity.toFixed(3);
-    var runX = (1 - (hu < .72 ? hu / .72 * .85 : .85 + eOut((hu - .72) / .28) * .15)) * -runDist;
-    hopWrap.style.transform = 'translateX(' + runX.toFixed(2) + 'px)';
-    glow.style.opacity = (hi * lerp(1, .2, dim)).toFixed(3);
-    // camera: a slow push in during the throw, released after the strike
-    var push = eIO(prog(t, [T.windup[0], T.throwP[1]])) * (1 - eIO(prog(t, [T.impact, T.impact + 700])));
-    scene.style.transformOrigin = (W * .3) + 'px ' + (H * .6) + 'px';
+    meander.style.opacity = (.55 * s).toFixed(3);
 
     if (!reduce) {
-      var released = t >= T.flight[0];
-      applyPose(pose(t), t);
-      spearIn.style.opacity = released ? 0 : 1;
-      if (released) {
-        var r = release();
-        hopWrap.style.transform = 'translateX(0px)';
-        applyPose(pose(t), t);
-        fxSpear.style.display = '';
-        var u = prog(t, T.flight); u = u * .82 + eIn(u) * .18;
-        var tip, ang;
+      var started = t >= T.flight[0];
+      fxSpear.style.display = started ? '' : 'none';
+      if (started) {
+        var p = prog(t, T.flight), u = flightU(p), tip, ang, sc;
         if (t < T.impact) {
-          tip = bez(r, u); ang = bezTan(r, u);
+          sc = flightScale(u);
+          var ang1 = flightAngle(1), path = flightPos(u);
+          ang = flightAngle(u) + spinAt(u);
+          // the centre leads in along the path; near the end it shifts back so the tip lands on the mark
+          var back = eIO(clamp((u - .7) / .3, 0, 1)) * HALF * sc;
+          setSpearMid({ x: path.x - Math.cos(ang1) * back, y: path.y - Math.sin(ang1) * back }, ang, sc);
         } else {
-          ang = bezTan(r, 1);
-          var since = t - T.impact, sink = eOut(clamp(since / 120, 0, 1)) * 14 * r.sc;
-          tip = { x: r.t.x + Math.cos(ang) * sink, y: r.t.y + Math.sin(ang) * sink };
-          ang += Math.sin(since / 22) * Math.exp(-since / 140) * 2.6 * D;
+          ang = flightAngle(1); sc = flightScale(1);
+          var since = t - T.impact, sink = eOut(clamp(since / 120, 0, 1)) * 16 * sc;
+          tip = { x: P.x + Math.cos(ang) * sink, y: P.y + Math.sin(ang) * sink };
+          ang += Math.sin(since / 22) * Math.exp(-since / 140) * 3 * D;   // the shaft quivers
+          setSpear(tip, ang, sc);
         }
-        setSpear(tip, ang, r.sc);
-        drawDust(t);
-        fxSpear.style.opacity = (1 - eIO(prog(t, T.spearOut))).toFixed(3);
+        fxSpear.style.opacity = (clamp(p * 6, 0, 1) * (1 - eIO(prog(t, T.spearOut)))).toFixed(3);
 
-        // Trail along the arc
-        var steps = 28, pts = [], uu = Math.min(u, 1), u0 = Math.max(0, uu - .55);
-        for (var i = 0; i <= steps; i++) { var p = bez(r, lerp(u0, uu, i / steps)); pts.push(p.x.toFixed(1) + ' ' + p.y.toFixed(1)); }
-        trail.setAttribute('d', 'M' + pts.join(' L'));
-        var a0 = bez(r, u0), a1 = bez(r, uu);
+        // Light trail along the last stretch of the spiral
+        var uu = Math.min(u, 1), u0 = Math.max(0, uu - .16), steps = 36, pts = [];
+        for (var i = 0; i <= steps; i++) { var q2 = flightPos(lerp(u0, uu, i / steps)); pts.push(q2.x.toFixed(1) + ' ' + q2.y.toFixed(1)); }
+        var d = 'M' + pts.join(' L');
+        trail.setAttribute('d', d); if (trailWide) trailWide.setAttribute('d', d);
+        var a0 = flightPos(u0), a1 = flightPos(uu);
         trailGrad.setAttribute('x1', a0.x); trailGrad.setAttribute('y1', a0.y);
         trailGrad.setAttribute('x2', a1.x); trailGrad.setAttribute('y2', a1.y);
-        var trailFade = t < T.impact ? 1 : 1 - eOut(clamp((t - T.impact) / 380, 0, 1));
+        var trailFade = (t < T.impact ? clamp(p * 4, 0, 1) : 1 - eOut(clamp((t - T.impact) / 380, 0, 1)));
         trail.style.opacity = trailFade.toFixed(3);
+        if (trailWide) trailWide.style.opacity = (trailFade * .5).toFixed(3);
 
         // Impact
-        var fi = T.impact >= 0 && t >= T.impact ? clamp((t - T.impact) / 520, 0, 1) : -1;
+        var fi = t >= T.impact ? clamp((t - T.impact) / 520, 0, 1) : -1;
         if (fi >= 0) {
           var R = Math.max(W, H) * .42 * eOut(fi);
-          flash.setAttribute('cx', r.t.x); flash.setAttribute('cy', r.t.y); flash.setAttribute('r', Math.max(R, 1));
+          flash.setAttribute('cx', P.x); flash.setAttribute('cy', P.y); flash.setAttribute('r', Math.max(R, 1));
           flash.style.opacity = (1 - fi) * .95;
-          flashCore.setAttribute('cx', r.t.x); flashCore.setAttribute('cy', r.t.y);
+          flashCore.setAttribute('cx', P.x); flashCore.setAttribute('cy', P.y);
           flashCore.setAttribute('r', Math.max(4, 70 * eOutBack(clamp(fi * 2.2, 0, 1)) * (1 - fi * .6)));
           flashCore.style.opacity = (1 - eIn(fi));
-          var shake = (t - T.impact) < 240 ? Math.sin((t - T.impact) / 14) * 6 * (1 - (t - T.impact) / 240) : 0;
-          scene.style.transform = 'translate(' + (shake * .4).toFixed(2) + 'px,' + shake.toFixed(2) + 'px) scale(' + (1 + push * .05).toFixed(4) + ')';
+          var el = t - T.impact, shake = el < 240 ? Math.sin(el / 14) * 6 * (1 - el / 240) : 0;
+          scene.style.transform = 'translate(' + (shake * .4).toFixed(2) + 'px,' + shake.toFixed(2) + 'px)';
         } else {
-          flash.style.opacity = 0; flashCore.style.opacity = 0; scene.style.transform = 'scale(' + (1 + push * .05).toFixed(4) + ')';
+          flash.style.opacity = 0; flashCore.style.opacity = 0; scene.style.transform = '';
         }
-        // Seam opens from the strike point to both edges
-        var sp = eOut(prog(t, T.seam));
-        drawSeam(r.t.x, sp);
+        drawSeam(P.x, eOut(prog(t, T.seam)));
       } else {
-        fxSpear.style.display = 'none'; trail.style.opacity = 0; flash.style.opacity = 0; flashCore.style.opacity = 0;
-        scene.style.transform = 'scale(' + (1 + push * .05).toFixed(4) + ')';
-        drawSeam(W * .5, 0);
+        trail.style.opacity = 0; if (trailWide) trailWide.style.opacity = 0;
+        flash.style.opacity = 0; flashCore.style.opacity = 0;
+        drawSeam(P.x, 0);
       }
     } else {
+      fxSpear.style.display = 'none';
       drawSeam(W * .5, eOut(prog(t, T.laurel)));
     }
 
@@ -319,22 +230,6 @@
     }
     top.style.transform = 'translateY(' + (-sp2 * (seamY + 40)).toFixed(2) + 'px)';
     bot.style.transform = 'translateY(' + (sp2 * (H - seamY + 40)).toFixed(2) + 'px)';
-  }
-
-  function drawDust(t) {
-    if (!dustG) return;
-    if (!dust.length) {
-      var m = footMark.getScreenCTM(); var fxp = { x: m.e, y: m.f };
-      for (var i = 0; i < 7; i++) dust.push({ x: fxp.x - 10 - i * 9, y: fxp.y - 2 - (i % 3) * 4, r: 5 + (i % 4) * 3, d: i * 35 });
-    }
-    var html = '';
-    for (var k = 0; k < dust.length; k++) {
-      var dd = dust[k], u = clamp((t - T.throwP[0] - 60 - dd.d) / 650, 0, 1);
-      if (u <= 0 || u >= 1) continue;
-      var e = eOut(u);
-      html += '<circle cx="' + (dd.x - e * 26).toFixed(1) + '" cy="' + (dd.y - e * 14).toFixed(1) + '" r="' + (dd.r * (0.4 + e * 1.6)).toFixed(1) + '" fill="#cfae78" opacity="' + ((1 - u) * .22).toFixed(3) + '"/>';
-    }
-    dustG.innerHTML = html;
   }
 
   function drawSeam(x, p) {
