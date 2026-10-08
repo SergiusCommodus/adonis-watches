@@ -44,6 +44,8 @@
  <linearGradient id="fx-trail-grad" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="1" y2="0">
   <stop offset="0" stop-color="#e2b36a" stop-opacity="0"/><stop offset=".7" stop-color="#f0cf8e" stop-opacity=".55"/><stop offset="1" stop-color="#fff4d8" stop-opacity=".95"/></linearGradient>
  <linearGradient id="fx-gold" x1="0" y1="-1" x2="0" y2="1"><stop offset="0" stop-color="#fff0c8"/><stop offset=".45" stop-color="#e2b86f"/><stop offset="1" stop-color="#8f6630"/></linearGradient>
+ <clipPath id="fx-shaft-clip"><rect x="-166" y="-3.5" width="428" height="7" rx="3.5"/></clipPath>
+ <linearGradient id="fx-wind-grad" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#f5e6c8" stop-opacity="0"/><stop offset=".75" stop-color="#f8ecd2" stop-opacity=".5"/><stop offset="1" stop-color="#fffaf0" stop-opacity=".9"/></linearGradient>
  <radialGradient id="fx-flash-grad"><stop offset="0" stop-color="#fff6e0" stop-opacity=".9"/><stop offset=".25" stop-color="#f1cf8c" stop-opacity=".45"/><stop offset="1" stop-color="#d9a85c" stop-opacity="0"/></radialGradient>
  <radialGradient id="fx-core-grad"><stop offset="0" stop-color="#ffffff"/><stop offset=".35" stop-color="#ffe9b8" stop-opacity=".9"/><stop offset="1" stop-color="#e6b464" stop-opacity="0"/></radialGradient>
  <filter id="fx-glow" filterUnits="userSpaceOnUse" x="0" y="0" width="100" height="100"><feGaussianBlur stdDeviation="3"/></filter>
@@ -56,7 +58,8 @@
 <line id="fx-seam-gr" stroke="#e6b86e" stroke-width="10" filter="url(#fx-glow-wide)" opacity="0"/>
 <line id="fx-seam-l" stroke="#fff1cf" stroke-width="2" opacity="0"/>
 <line id="fx-seam-r" stroke="#fff1cf" stroke-width="2" opacity="0"/>
-<g id="fx-spear" style="display:none"><path d="M-165 0 L262 0" stroke="url(#fx-shaft)" stroke-width="7" stroke-linecap="round"/><path d="M-176 0 L-158 -3.4 L-150 0 L-158 3.4Z" fill="url(#fx-gold)"/><path d="M256 0 L270 -10 Q294 -8 314 0 Q294 8 270 10Z" fill="url(#fx-gold)"/><path d="M270 0 L306 0" stroke="#140c04" stroke-width="1" opacity=".55"/></g>
+<g id="fx-wind"></g>
+<g id="fx-spear" style="display:none"><path d="M-165 0 L262 0" stroke="url(#fx-shaft)" stroke-width="7" stroke-linecap="round"/><g clip-path="url(#fx-shaft-clip)"><path id="fx-wrap" d="M-216 -4 L-207 4 M-180 -4 L-171 4 M-144 -4 L-135 4 M-108 -4 L-99 4 M-72 -4 L-63 4 M-36 -4 L-27 4 M0 -4 L9 4 M36 -4 L45 4 M72 -4 L81 4 M108 -4 L117 4 M144 -4 L153 4 M180 -4 L189 4 M216 -4 L225 4 M252 -4 L261 4 M288 -4 L297 4" stroke="#4a3112" stroke-width="2.2" opacity=".42" fill="none"/></g><line id="fx-spec" x1="-160" y1="0" x2="258" y2="0" stroke="#fff6dc" stroke-width="1.6" stroke-linecap="round"/><path d="M-176 0 L-158 -3.4 L-150 0 L-158 3.4Z" fill="url(#fx-gold)"/><g id="fx-head"><path d="M256 0 L270 -10 Q294 -8 314 0 Q294 8 270 10Z" fill="url(#fx-gold)"/><path d="M270 0 L306 0" stroke="#140c04" stroke-width="1" opacity=".55"/></g></g>
 <circle id="fx-flash-core" r="1" fill="url(#fx-core-grad)" opacity="0"/>
 </svg>
  </div>
@@ -264,7 +267,7 @@
 </footer>
 </div>
 <script src="assets/js/audio.js?v=20c00909"></script>
-<script src="assets/js/intro.js?v=0471073c"></script>
+<script src="assets/js/intro.js?v=13768db2"></script>
 <script src="assets/js/config.js?v=08b96ac7"></script>
 <script src="assets/js/main.js?v=28fbf96b" defer></script>
 </body>

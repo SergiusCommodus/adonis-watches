@@ -2,7 +2,7 @@
 
 The website for **Adonis**, a Carlisle Capital LLC venture: chronographs born of the golden age of spaceflight and crowned with the laurel of Apollo.
 
-The home page opens with a golden spear that spins in around the screen and strikes; the light of the strike cuts the night open and reveals the site. The intro plays once per browser session, can be skipped with the button or the Escape key, and is replaced by a short fade for visitors who prefer reduced motion. Add `?intro` to the home page address to replay it.
+The home page opens with a golden spear that flies in fast and level, spiralling, and strikes; the light of the strike cuts the night open and reveals the site. The intro plays once per browser session, can be skipped with the button or the Escape key, and is replaced by a short fade for visitors who prefer reduced motion. Add `?intro` to the home page address to replay it.
 
 ## Pages
 

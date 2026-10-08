@@ -1,4 +1,4 @@
-/* Adonis opening sequence: a spear flies in, sweeping around in a spinning arc,
+/* Adonis opening sequence: a spear flies in fast and level, spiralling like a thrown football,
    strikes, and the light of the strike cuts the night open to reveal the site. */
 (function () {
   var root = document.documentElement;
@@ -18,7 +18,7 @@
   var q = function (s) { return intro.querySelector(s); };
   var top = q('.intro-top'), bot = q('.intro-bottom'), scene = q('.intro-scene');
   var fx = q('.intro-fx'), fxSpear = q('#fx-spear'), trail = q('#fx-trail'), trailGrad = q('#fx-trail-grad');
-  var trailWide = q('#fx-trail-wide');
+  var trailWide = q('#fx-trail-wide'), windG = q('#fx-wind'), head = q('#fx-head'), spec = q('#fx-spec'), wrap = q('#fx-wrap');
   var flash = q('#fx-flash'), flashCore = q('#fx-flash-core');
   var seamL = q('#fx-seam-l'), seamR = q('#fx-seam-r'), seamGL = q('#fx-seam-gl'), seamGR = q('#fx-seam-gr');
   var glowFilter = q('#fx-glow'), glowFilter2 = q('#fx-glow-wide');
@@ -27,9 +27,9 @@
 
   // Timeline (ms)
   var T = {
-    starsIn: [0, 800], flight: [350, 2750], impact: 2750, seam: [2780, 3200],
-    spearOut: [3150, 3550], laurel: [3250, 3950], word: [3400, 4100], tag: [3700, 4250],
-    split: [4600, 5700], end: 5750
+    starsIn: [0, 700], flight: [550, 1500], impact: 1500, seam: [1530, 1950],
+    spearOut: [1950, 2350], laurel: [2050, 2750], word: [2200, 2900], tag: [2500, 3050],
+    split: [3450, 4550], end: 4600
   };
   if (reduce) {
     T = { starsIn: [0, 400], flight: [0, 0], impact: -1, seam: [0, 0], spearOut: [0, 0],
@@ -48,17 +48,15 @@
 
   // Layout
   var W, H, seamY, layoutDone = false, revealFired = false;
-  var P = { x: 0, y: 0 }, RX = 0, RY = 0, SC = 1;
+  var P = { x: 0, y: 0 }, SC = 1;
   var TIP = 312; // spear tip in spear design units
 
   function layout() {
     W = window.innerWidth; H = window.innerHeight;
     var mobile = W < 720;
     seamY = Math.round(H * (mobile ? 0.5 : 0.47));
-    P = { x: W / 2, y: seamY };                          // the strike point
-    RX = W * (mobile ? .38 : .36);                       // orbit size, kept inside the screen
-    RY = mobile ? Math.min(H * .28, RX * 1.5) : Math.min(H * .36, RX * .8);
-    SC = clamp(Math.min(W, H * 1.6) / 1500, .36, .6);   // spear size
+    P = { x: W / 2, y: seamY };                          // the strike point, on the line that will split
+    SC = clamp(Math.min(W, H * 1.6) / 1500, .38, .66);   // spear size
     top.style.height = seamY + 'px';
     bot.style.top = seamY + 'px'; bot.style.height = (H - seamY) + 'px';
     fx.setAttribute('viewBox', '0 0 ' + W + ' ' + H);
@@ -111,36 +109,44 @@
   }
 
 
-  // The flight: an inward spiral around the strike point. The spear enters from the left,
-  // sweeps one and a quarter turns around the centre and dives in. It always points along
-  // its path, so it visibly turns through the whole circle as it flies.
-  var TURNS = 1.1, A0 = Math.PI * .92, SPINS = 2.75, MID = 69, HALF = 245;
-  function flightPos(u) {
-    // clockwise on screen; the turning eases off at the end so the final dive runs straight in
-    var a = A0 + TURNS * Math.PI * 2 * (1 - Math.pow(1 - u, 1.9));
-    // the orbit tightens as it goes; it starts wider so the spear enters from off screen
-    var k = Math.pow(1 - u, 1.05) * (1 + .75 * Math.pow(1 - clamp(u / .22, 0, 1), 2));
-    return { x: P.x + Math.cos(a) * RX * k, y: P.y + Math.sin(a) * RY * k };
-  }
-  function flightAngle(u) {
-    var a = flightPos(Math.max(0, u - .004)), b = flightPos(Math.min(1, u + .004));
-    if (u >= .996) { a = flightPos(.988); b = flightPos(1); }
-    return Math.atan2(b.y - a.y, b.x - a.x);
-  }
-  // time to path position: quick entry, a gliding orbit, then an accelerating dive
-  function flightU(p) { return .55 * p + .45 * p * p; }
-  // perspective: smaller far away, full size at the strike
-  function flightScale(u) { return SC * lerp(.68, 1, eIO(u)); }
+  // The flight: a level, fast throw along the line where the night will split. The spear
+  // spirals about its own axis like a thrown football, with wind streaming off it, and
+  // strikes the centre tip first.
+  var SPIN_HZ = 8.5;              // spiral turns per second
+  var WIND = [];
+  (function () {
+    var seed = 31; function rnd() { seed = (seed * 16807) % 2147483647; return (seed - 1) / 2147483646; }
+    for (var i = 0; i < 16; i++) {
+      var side = i % 2 ? 1 : -1;
+      WIND.push({ dy: side * (5 + Math.pow(rnd(), 1.4) * 46), len: 140 + rnd() * 340, w: .7 + rnd() * 1.3,
+        cyc: 260 + rnd() * 320, off: rnd(), a: .25 + rnd() * .45 });
+    }
+  })();
 
-  function spinAt(u) { return SPINS * Math.PI * 2 * Math.pow(1 - clamp(u / .9, 0, 1), 2.2); }
-  // place the spear by its centre, so it spins about its balance point
-  function setSpearMid(c, ang, sc) {
-    var gx = c.x - Math.cos(ang) * MID * sc, gy = c.y - Math.sin(ang) * MID * sc;
-    fxSpear.setAttribute('transform', 'translate(' + gx.toFixed(2) + ' ' + gy.toFixed(2) + ') rotate(' + (ang / D).toFixed(3) + ') scale(' + sc.toFixed(4) + ')');
-  }
   function setSpear(tip, ang, sc) {
     var gx = tip.x - Math.cos(ang) * TIP * sc, gy = tip.y - Math.sin(ang) * TIP * sc;
     fxSpear.setAttribute('transform', 'translate(' + gx.toFixed(2) + ' ' + gy.toFixed(2) + ') rotate(' + (ang / D).toFixed(3) + ') scale(' + sc.toFixed(4) + ')');
+  }
+  // the spiral: the blade turns edge on and face on, a highlight rolls round the shaft,
+  // and the binding stripes slide along it
+  function setSpiral(phase) {
+    var c = Math.cos(phase), sn = Math.sin(phase);
+    if (head) head.setAttribute('transform', 'scale(1 ' + (.18 + .82 * Math.abs(c)).toFixed(3) + ')');
+    if (spec) { spec.setAttribute('transform', 'translate(0 ' + (sn * 2.4).toFixed(2) + ')'); spec.style.opacity = (.25 + .55 * Math.max(0, c)).toFixed(3); }
+    if (wrap) wrap.setAttribute('transform', 'translate(' + (((phase / (Math.PI * 2)) % 1) * 36).toFixed(2) + ' 0)');
+  }
+
+  function drawWind(t, tailX, y, sc, fade) {
+    if (!windG) return;
+    var html = '', k = clamp(W / 1440, .45, 1.2);
+    for (var i = 0; i < WIND.length; i++) {
+      var w = WIND[i], c = ((t / w.cyc) + w.off) % 1;
+      var x2 = tailX + 120 * sc - c * 260 * k, len = w.len * k * (1 - c * .35);
+      var op = w.a * (1 - c) * fade;
+      if (op <= .01) continue;
+      html += '<rect x="' + (x2 - len).toFixed(1) + '" y="' + (y + w.dy * k - w.w / 2).toFixed(1) + '" width="' + len.toFixed(1) + '" height="' + w.w.toFixed(2) + '" fill="url(#fx-wind-grad)" opacity="' + op.toFixed(3) + '"/>';
+    }
+    windG.innerHTML = html;
   }
 
   function render(t) {
@@ -154,34 +160,33 @@
       var started = t >= T.flight[0];
       fxSpear.style.display = started ? '' : 'none';
       if (started) {
-        var p = prog(t, T.flight), u = flightU(p), tip, ang, sc;
-        if (t < T.impact) {
-          sc = flightScale(u);
-          var ang1 = flightAngle(1), path = flightPos(u);
-          ang = flightAngle(u) + spinAt(u);
-          // the centre leads in along the path; near the end it shifts back so the tip lands on the mark
-          var back = eIO(clamp((u - .7) / .3, 0, 1)) * HALF * sc;
-          setSpearMid({ x: path.x - Math.cos(ang1) * back, y: path.y - Math.sin(ang1) * back }, ang, sc);
+        var sc = SC, len = (TIP + 176) * sc, p = prog(t, T.flight);
+        var x0 = -60 * sc, tipX;
+        var flying = t < T.impact;
+        if (flying) {
+          tipX = lerp(x0, P.x, p);                                   // constant speed, no easing: it is already at full pace
+          setSpear({ x: tipX, y: P.y }, 0, sc);
+          setSpiral((t - T.flight[0]) / 1000 * SPIN_HZ * Math.PI * 2);
         } else {
-          ang = flightAngle(1); sc = flightScale(1);
-          var since = t - T.impact, sink = eOut(clamp(since / 120, 0, 1)) * 16 * sc;
-          tip = { x: P.x + Math.cos(ang) * sink, y: P.y + Math.sin(ang) * sink };
-          ang += Math.sin(since / 22) * Math.exp(-since / 140) * 3 * D;   // the shaft quivers
-          setSpear(tip, ang, sc);
+          var since = t - T.impact, sink = eOut(clamp(since / 110, 0, 1)) * 18 * sc;
+          tipX = P.x + sink;
+          var quiver = Math.sin(since / 20) * Math.exp(-since / 150) * 2.6 * D;  // the shaft shudders
+          setSpear({ x: tipX, y: P.y }, quiver, sc);
+          setSpiral((T.impact - T.flight[0]) / 1000 * SPIN_HZ * Math.PI * 2);
         }
-        fxSpear.style.opacity = (clamp(p * 6, 0, 1) * (1 - eIO(prog(t, T.spearOut)))).toFixed(3);
+        fxSpear.style.opacity = (1 - eIO(prog(t, T.spearOut))).toFixed(3);
 
-        // Light trail along the last stretch of the spiral
-        var uu = Math.min(u, 1), u0 = Math.max(0, uu - .16), steps = 36, pts = [];
-        for (var i = 0; i <= steps; i++) { var q2 = flightPos(lerp(u0, uu, i / steps)); pts.push(q2.x.toFixed(1) + ' ' + q2.y.toFixed(1)); }
-        var d = 'M' + pts.join(' L');
+        // Wind and a streak of light behind it
+        var windFade = flying ? clamp(p * 5, 0, 1) : 1 - eOut(clamp((t - T.impact) / 260, 0, 1));
+        drawWind(t, tipX - len, P.y, sc, windFade);
+        var trailLen = (flying ? 1 : windFade) * Math.min(W * .45, 520);
+        var tx1 = tipX - len * .55, tx0 = tx1 - trailLen;
+        var d = 'M' + tx0.toFixed(1) + ' ' + P.y + ' L' + tx1.toFixed(1) + ' ' + P.y;
         trail.setAttribute('d', d); if (trailWide) trailWide.setAttribute('d', d);
-        var a0 = flightPos(u0), a1 = flightPos(uu);
-        trailGrad.setAttribute('x1', a0.x); trailGrad.setAttribute('y1', a0.y);
-        trailGrad.setAttribute('x2', a1.x); trailGrad.setAttribute('y2', a1.y);
-        var trailFade = (t < T.impact ? clamp(p * 4, 0, 1) : 1 - eOut(clamp((t - T.impact) / 380, 0, 1)));
-        trail.style.opacity = trailFade.toFixed(3);
-        if (trailWide) trailWide.style.opacity = (trailFade * .5).toFixed(3);
+        trailGrad.setAttribute('x1', tx0); trailGrad.setAttribute('y1', P.y);
+        trailGrad.setAttribute('x2', tx1); trailGrad.setAttribute('y2', P.y);
+        trail.style.opacity = (windFade * .9).toFixed(3);
+        if (trailWide) trailWide.style.opacity = (windFade * .45).toFixed(3);
 
         // Impact
         var fi = t >= T.impact ? clamp((t - T.impact) / 520, 0, 1) : -1;
@@ -192,13 +197,14 @@
           flashCore.setAttribute('cx', P.x); flashCore.setAttribute('cy', P.y);
           flashCore.setAttribute('r', Math.max(4, 70 * eOutBack(clamp(fi * 2.2, 0, 1)) * (1 - fi * .6)));
           flashCore.style.opacity = (1 - eIn(fi));
-          var el = t - T.impact, shake = el < 240 ? Math.sin(el / 14) * 6 * (1 - el / 240) : 0;
-          scene.style.transform = 'translate(' + (shake * .4).toFixed(2) + 'px,' + shake.toFixed(2) + 'px)';
+          var el = t - T.impact, shake = el < 260 ? Math.sin(el / 13) * 7 * (1 - el / 260) : 0;
+          scene.style.transform = 'translate(' + (shake * .5).toFixed(2) + 'px,' + (shake * .8).toFixed(2) + 'px)';
         } else {
           flash.style.opacity = 0; flashCore.style.opacity = 0; scene.style.transform = '';
         }
         drawSeam(P.x, eOut(prog(t, T.seam)));
       } else {
+        if (windG) windG.innerHTML = '';
         trail.style.opacity = 0; if (trailWide) trailWide.style.opacity = 0;
         flash.style.opacity = 0; flashCore.style.opacity = 0;
         drawSeam(P.x, 0);
