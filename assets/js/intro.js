@@ -144,7 +144,7 @@
   }
 
   function render(t) {
-    if (!layoutDone) layout();
+    if (!layoutDone || W !== window.innerWidth || H !== window.innerHeight) layout();
     // Sky
     var s = eOut(prog(t, T.starsIn));
     top.style.opacity = bot.style.opacity = s;
