@@ -113,6 +113,15 @@ p{margin:0 0 1em}
 .menu-toggle span:nth-child(1){top:18px}.menu-toggle span:nth-child(2){top:26px}
 .menu-open .menu-toggle span:nth-child(1){top:22px;transform:rotate(45deg)}
 .menu-open .menu-toggle span:nth-child(2){top:22px;transform:rotate(-45deg)}
+.snd-head{display:inline-flex;align-items:center;gap:9px;background:none;border:0;padding:8px 0;margin:0;color:inherit;font-family:var(--sans);font-size:11.5px;font-weight:500;letter-spacing:.2em;text-transform:uppercase;cursor:pointer;line-height:1}
+.snd-head svg{width:13px;height:13px;flex:none;opacity:.85}
+.snd-head .bar{transform-origin:center bottom;transform-box:fill-box;transform:scaleY(.4);transition:transform .3s}
+.snd-head[aria-pressed="true"] .bar{animation:sndbar 1.1s ease-in-out infinite}
+.snd-head .bar:nth-child(2){animation-delay:.18s}.snd-head .bar:nth-child(3){animation-delay:.36s}.snd-head .bar:nth-child(4){animation-delay:.1s}
+.snd-head:hover{color:var(--gold-light)}
+@keyframes sndbar{0%,100%{transform:scaleY(.35)}50%{transform:scaleY(1)}}
+@media (prefers-reduced-motion:reduce){.snd-head .bar{animation:none!important;transform:none}}
+.mobile-right{display:none}
 .mobile-reserve{display:none;justify-self:end;font-size:11px;font-weight:500;letter-spacing:.2em;text-transform:uppercase;border-bottom:1px solid currentColor;padding:4px 0}
 
 /* Header over a dark hero */
@@ -235,7 +244,7 @@ p{margin:0 0 1em}
 /* ---------- Heritage teaser ---------- */
 .heritage-teaser{display:grid;grid-template-columns:1fr 1fr;gap:clamp(40px,7vw,120px);align-items:center}
 .ht-media{background:#0a0a0a;aspect-ratio:1/1;display:flex;align-items:center;justify-content:center;overflow:hidden}
-.ht-media img{width:100%;height:100%;object-fit:cover}
+.ht-media img{width:100%;height:100%;object-fit:contain}
 .quote{font-family:var(--serif);font-style:italic;font-weight:300;font-size:clamp(26px,2.6vw,38px);line-height:1.3;margin:28px 0;color:var(--ink-2)}
 
 /* ---------- Lunar casebacks ---------- */
@@ -435,6 +444,10 @@ fieldset.field{border:0;padding:0;margin:0}
   :root{--hdr-h:64px}
   .nav{display:none}
   .menu-toggle,.mobile-reserve{display:block}
+  .mobile-right{display:flex;align-items:center;gap:18px;justify-self:end}
+  .mobile-right .snd-head{width:36px;height:40px;justify-content:center;padding:0}
+  .mobile-right .snd-head svg{width:16px;height:16px}
+  .mobile-right .snd-label{display:none}
   .brand svg{width:28px}
   .brand-word{font-size:16px}
   .hero-home{align-items:flex-end}
@@ -513,3 +526,6 @@ h1,h2,h3,.display,.h1,.h2,.h3,.stats strong,.number-ticker,.hero-spec strong,.ch
   .hero-home .hero-media{height:56vh}
   .hero-home .hero-copy{padding-top:58vh}
 }
+
+/* keyboard focus */
+.tab:focus-visible,.snd-head:focus-visible,.newsletter input:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:2px solid var(--gold);outline-offset:2px}

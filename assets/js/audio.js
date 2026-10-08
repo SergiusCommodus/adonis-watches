@@ -29,29 +29,37 @@
 
   /* button */
   var css = document.createElement('style');
-  css.textContent = '.snd{position:fixed;left:clamp(14px,2.6vw,30px);bottom:clamp(14px,3vh,30px);z-index:99999;display:flex;align-items:center;gap:10px;height:40px;padding:0 16px 0 12px;' +
+  css.textContent = '.snd-float{position:fixed;left:clamp(16px,3vw,36px);bottom:calc(3.2vh + 40px);z-index:99999;display:flex;align-items:center;gap:10px;height:40px;padding:0 16px 0 12px;' +
     'background:rgba(8,8,10,.62);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);border:1px solid rgba(217,178,115,.5);color:#d9b273;font:500 10.5px/1 "Jost",sans-serif;letter-spacing:.24em;text-transform:uppercase;cursor:pointer;transition:background .25s,color .25s}' +
-    '.snd:hover,.snd:focus-visible{background:#d9b273;color:#050506;outline:none}' +
-    '.snd svg{width:18px;height:18px;flex:none}.snd .bar{transform-origin:center bottom;transform-box:fill-box}' +
-    '.snd[aria-pressed="true"] .bar{animation:sndbar 1.1s ease-in-out infinite}.snd .bar:nth-child(2){animation-delay:.18s}.snd .bar:nth-child(3){animation-delay:.36s}.snd .bar:nth-child(4){animation-delay:.1s}' +
-    'html.intro-gated .snd{opacity:0;pointer-events:none}' +
+    '.snd-float:hover,.snd-float:focus-visible{background:#d9b273;color:#050506;outline:none}' +
+    '.snd-float svg{width:18px;height:18px;flex:none}.snd-float .bar{transform-origin:center bottom;transform-box:fill-box}' +
+    '.snd-float[aria-pressed="true"] .bar{animation:sndbar 1.1s ease-in-out infinite}.snd-float .bar:nth-child(2){animation-delay:.18s}.snd-float .bar:nth-child(3){animation-delay:.36s}.snd-float .bar:nth-child(4){animation-delay:.1s}' +
+    '.snd-float{display:none!important}html.intro-active .snd-float{display:flex!important}html.intro-gated .snd-float{opacity:0;pointer-events:none}' +
     '@keyframes sndbar{0%,100%{transform:scaleY(.35)}50%{transform:scaleY(1)}}' +
-    '@media (prefers-reduced-motion:reduce){.snd .bar{animation:none!important}}@media (max-width:560px){.snd{height:36px;padding:0 12px 0 10px}.snd span{display:none}}';
+    '@media (prefers-reduced-motion:reduce){.snd-float .bar{animation:none!important}}@media (max-width:560px){.snd-float{height:36px;padding:0 12px 0 10px}.snd-float span{display:none}}';
   document.head.appendChild(css);
 
+  /* Floating toggle, shown only while the opening sequence plays. Afterwards the toggle
+     lives in the header (.snd-head buttons in every page's markup). */
   var btn = document.createElement('button');
-  btn.type = 'button'; btn.className = 'snd';
-  btn.setAttribute('aria-label', 'Sound');
+  btn.type = 'button'; btn.className = 'snd snd-float';
   btn.innerHTML = '<svg viewBox="0 0 18 18" fill="currentColor" aria-hidden="true"><rect class="bar" x="1" y="4" width="2" height="10"/><rect class="bar" x="5.5" y="2" width="2" height="14"/><rect class="bar" x="10" y="5" width="2" height="8"/><rect class="bar" x="14.5" y="3" width="2" height="12"/></svg><span></span>';
-  var label = btn.querySelector('span');
   function paint() {
     var on = wantOn && playing;
+    var text = on ? 'Sound on' : (wantOn ? 'Tap for sound' : 'Sound off');
+    var aria = on ? 'Sound on, mute soundtrack' : 'Sound off, play soundtrack';
     btn.setAttribute('aria-pressed', on ? 'true' : 'false');
-    label.textContent = on ? 'Sound on' : (wantOn ? 'Tap for sound' : 'Sound off');
-    btn.setAttribute('aria-label', label.textContent + (on ? ', mute soundtrack' : ', play soundtrack'));
+    btn.querySelector('span').textContent = text;
+    btn.setAttribute('aria-label', text + (on ? ', mute soundtrack' : ', play soundtrack'));
+    document.querySelectorAll('.snd-head').forEach(function (b) {
+      b.setAttribute('aria-pressed', on ? 'true' : 'false');
+      b.setAttribute('aria-label', aria);
+      b.title = on ? 'Mute soundtrack' : 'Play soundtrack';
+    });
   }
   function mount() { document.body.appendChild(btn); paint(); }
   if (document.body) mount(); else document.addEventListener('DOMContentLoaded', mount);
+  document.addEventListener('adonis:swap', paint);
 
   function fadeTo(v, ms, done) {
     clearInterval(fadeTimer);
@@ -75,13 +83,12 @@
   function stop() { wantOn = false; set(sessionStorage, KEY_OFF, '1'); fadeTo(0, 500, function () { a.pause(); playing = false; paint(); }); paint(); }
   function resume() { wantOn = true; set(sessionStorage, KEY_OFF, '0'); playing = false; start(); }
 
-  btn.addEventListener('click', function (e) {
-    e.stopPropagation();
-    if (wantOn && playing) stop(); else resume();
-  });
+  function toggle(e) { e.stopPropagation(); if (wantOn && playing) stop(); else resume(); }
+  btn.addEventListener('click', toggle);
+  document.addEventListener('click', function (e) { var b = e.target.closest && e.target.closest('.snd-head'); if (b) toggle(e); });
 
   var evs = ['click', 'pointerup', 'touchend', 'keydown'];
-  function onGesture(e) { if (btn.contains(e.target) || (e.target.closest && e.target.closest('.intro-gate'))) return; if (e.type === 'keydown' && e.key === 'Escape') return; start(); }
+  function onGesture(e) { if (e.target.closest && e.target.closest('.snd, .intro-gate')) return; if (e.type === 'keydown' && e.key === 'Escape') return; start(); }
   function removeGestures() { evs.forEach(function (n) { window.removeEventListener(n, onGesture, true); }); }
   evs.forEach(function (n) { window.addEventListener(n, onGesture, true); });
 

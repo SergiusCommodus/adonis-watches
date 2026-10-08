@@ -175,6 +175,7 @@
       if (target) target.scrollIntoView(); else window.scrollTo(0, 0);
       body.classList.remove('is-loaded');
       init(false);
+      document.dispatchEvent(new CustomEvent('adonis:swap'));
       var main = document.getElementById('main');
       if (main) { main.setAttribute('tabindex', '-1'); main.focus({ preventScroll: true }); }
       busy = false;
